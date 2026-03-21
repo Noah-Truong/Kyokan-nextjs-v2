@@ -7,6 +7,7 @@ import {
   NEWS_CATEGORY_META,
   formatWpDate,
   WP_API_URL,
+  stripHtml,
   type WpPost,
   type WpCategory,
 } from "@/lib/wordpress";
@@ -72,10 +73,83 @@ const CATEGORY_ICON: Record<WpCategory, React.ReactNode> = {
   ),
 };
 
+function NewsModal({ post, onClose }: { post: WpPost; onClose: () => void }) {
+  const meta = post.categorySlug ? NEWS_CATEGORY_META[post.categorySlug] : null;
+  const icon = post.categorySlug ? CATEGORY_ICON[post.categorySlug] : null;
+  const excerpt = stripHtml(post.excerpt.rendered);
+
+  useEffect(() => {
+    document.body.style.overflow = "hidden";
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = "";
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [onClose]);
+
+  return (
+    <AnimatePresence>
+      <motion.div
+        key="backdrop"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-50 flex items-center justify-center p-4"
+        onClick={onClose}
+      >
+        <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+        <motion.div
+          key="modal"
+          initial={{ opacity: 0, scale: 0.95, y: 12 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: 12 }}
+          transition={{ duration: 0.2 }}
+          onClick={(e) => e.stopPropagation()}
+          className="relative z-10 bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto p-6"
+        >
+          {/* Close button */}
+          <button
+            onClick={onClose}
+            className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+
+          {/* Meta */}
+          <div className="flex items-center gap-2 mb-3">
+            <time className="text-xs text-slate-400 tabular-nums">{formatWpDate(post.date)}</time>
+            {meta && (
+              <span className={`inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full ${meta.badgeClass}`}>
+                {icon}
+                {meta.label}
+              </span>
+            )}
+          </div>
+
+          {/* Title */}
+          <h2
+            className="text-base font-semibold text-primary-900 leading-snug mb-3"
+            dangerouslySetInnerHTML={{ __html: post.title.rendered }}
+          />
+
+          {/* Excerpt */}
+          {excerpt && (
+            <p className="text-sm text-slate-600 leading-relaxed">{excerpt}</p>
+          )}
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
+  );
+}
+
 export function WpNewsPanel() {
   const [posts, setPosts] = useState<WpPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [usingMock, setUsingMock] = useState(false);
+  const [selectedPost, setSelectedPost] = useState<WpPost | null>(null);
 
   useEffect(() => {
     const isPlaceholder =
@@ -100,93 +174,95 @@ export function WpNewsPanel() {
   }, []);
 
   return (
-    <motion.div
-      initial={{ opacity: 0, x: 20 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.6, delay: 0.4 }}
-      className="w-full lg:max-w-sm xl:max-w-md"
-    >
-      <div className="bg-primary-950/70 backdrop-blur-md rounded-2xl border border-white/10 overflow-hidden shadow-2xl">
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-accent-400 animate-pulse" />
-            <h3 className="text-sm font-semibold text-white tracking-wide">
-              お知らせ・新着情報
-            </h3>
+    <>
+      {selectedPost && (
+        <NewsModal post={selectedPost} onClose={() => setSelectedPost(null)} />
+      )}
+
+      <motion.div
+        initial={{ opacity: 0, x: 20 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.6, delay: 0.4 }}
+        className="w-full lg:max-w-sm xl:max-w-md"
+      >
+        <div className="bg-primary-950/70 backdrop-blur-md rounded-2xl border border-white/10 overflow-hidden shadow-2xl">
+          {/* Header */}
+          <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-accent-400 animate-pulse" />
+              <h3 className="text-sm font-semibold text-white tracking-wide">
+                お知らせ・新着情報
+              </h3>
+            </div>
+            {usingMock && (
+              <span className="text-[10px] text-white/30 italic">preview</span>
+            )}
           </div>
-          {usingMock && (
-            <span className="text-[10px] text-white/30 italic">preview</span>
-          )}
-        </div>
 
-        {/* Post list */}
-        <div className="divide-y divide-white/5">
-          <AnimatePresence mode="popLayout">
-            {loading
-              ? Array.from({ length: 4 }).map((_, i) => (
-                  <div key={i} className="px-5 py-4 animate-pulse space-y-2">
-                    <div className="h-3 w-24 rounded bg-white/10" />
-                    <div className="h-4 w-full rounded bg-white/10" />
-                  </div>
-                ))
-              : posts.map((post, i) => {
-                  const meta = post.categorySlug
-                    ? NEWS_CATEGORY_META[post.categorySlug]
-                    : null;
-                  const icon = post.categorySlug
-                    ? CATEGORY_ICON[post.categorySlug]
-                    : null;
+          {/* Post list */}
+          <div className="divide-y divide-white/5">
+            <AnimatePresence mode="popLayout">
+              {loading
+                ? Array.from({ length: 4 }).map((_, i) => (
+                    <div key={i} className="px-5 py-4 animate-pulse space-y-2">
+                      <div className="h-3 w-24 rounded bg-white/10" />
+                      <div className="h-4 w-full rounded bg-white/10" />
+                    </div>
+                  ))
+                : posts.map((post, i) => {
+                    const meta = post.categorySlug
+                      ? NEWS_CATEGORY_META[post.categorySlug]
+                      : null;
+                    const icon = post.categorySlug
+                      ? CATEGORY_ICON[post.categorySlug]
+                      : null;
 
-                  return (
-                    <motion.a
-                      key={post.id}
-                      href={post.link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: i * 0.07 }}
-                      className="flex flex-col gap-1.5 px-5 py-4 hover:bg-white/5 transition-colors group"
-                    >
-                      <div className="flex items-center gap-2">
-                        <time className="text-[11px] text-white/40 tabular-nums">
-                          {formatWpDate(post.date)}
-                        </time>
-                        {meta && (
-                          <span
-                            className={`inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full ${meta.badgeClass}`}
-                          >
-                            {icon}
-                            {meta.label}
-                          </span>
-                        )}
-                      </div>
-                      <p
-                        className="text-sm text-white/80 group-hover:text-white transition-colors line-clamp-2 leading-snug"
-                        dangerouslySetInnerHTML={{ __html: post.title.rendered }}
-                      />
-                    </motion.a>
-                  );
-                })}
-          </AnimatePresence>
-        </div>
+                    return (
+                      <motion.button
+                        key={post.id}
+                        onClick={() => setSelectedPost(post)}
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: i * 0.07 }}
+                        className="w-full text-left flex flex-col gap-1.5 px-5 py-4 hover:bg-white/5 transition-colors group"
+                      >
+                        <div className="flex items-center gap-2">
+                          <time className="text-[11px] text-white/40 tabular-nums">
+                            {formatWpDate(post.date)}
+                          </time>
+                          {meta && (
+                            <span
+                              className={`inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full ${meta.badgeClass}`}
+                            >
+                              {icon}
+                              {meta.label}
+                            </span>
+                          )}
+                        </div>
+                        <p
+                          className="text-sm text-white/80 group-hover:text-white transition-colors line-clamp-2 leading-snug"
+                          dangerouslySetInnerHTML={{ __html: post.title.rendered }}
+                        />
+                      </motion.button>
+                    );
+                  })}
+            </AnimatePresence>
+          </div>
 
-        {/* Footer link */}
-        <div className="px-5 py-3 border-t border-white/10 text-right">
-          <a
-            href={`${WP_API_URL}/news`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-xs text-accent-300 hover:text-accent-200 transition-colors inline-flex items-center gap-1"
-          >
-            すべて見る
-            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-          </a>
+          {/* Footer link */}
+          <div className="px-5 py-3 border-t border-white/10 text-right">
+            <a
+              href="/news"
+              className="text-xs text-accent-300 hover:text-accent-200 transition-colors inline-flex items-center gap-1"
+            >
+              すべて見る
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </a>
+          </div>
         </div>
-      </div>
-    </motion.div>
+      </motion.div>
+    </>
   );
 }

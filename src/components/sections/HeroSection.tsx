@@ -79,11 +79,7 @@ export function HeroSection() {
             transition={{ duration: 0.6, delay: 0.2 }}
             className="text-base sm:text-lg text-white mb-8 max-w-md leading-relaxed text-shadow font-medium"
           >
-            RAKUYU-Z工法は、供用中の下水道関連工事において、
-            <br />
-            周辺環境の衛生面や安全面、本工事の施工性と
-            <br />
-            品質確保に応える不断水水替工法です。
+            RAKUYU-Z工法は、供用中の下水道関連工事において、周辺環境の衛生面や安全面、本工事の施工性と品質確保に応える不断水水替工法です。
           </motion.p>
 
           {/* CTA Buttons */}

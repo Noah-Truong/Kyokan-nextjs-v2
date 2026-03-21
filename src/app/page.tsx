@@ -18,7 +18,7 @@ export default function HomePage() {
       exit="exit"
     >
       {/* News Ticker */}
-      <div className="pt-16">
+      <div className="pt-16 md:pt-18">
         <NewsTicker />
       </div>
 

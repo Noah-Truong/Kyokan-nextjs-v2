@@ -54,9 +54,10 @@ const CATEGORY_ICONS: Record<DocCategory, React.ReactNode> = {
 function DocCard({ doc }: { doc: WpDocument }) {
   const cat = doc.docCategory;
   const meta = cat ? DOC_CATEGORY_META[cat] : null;
-  const desc = doc.acf?.short_description || doc.excerpt?.rendered
-    ? (doc.acf?.short_description ?? doc.excerpt.rendered.replace(/<[^>]*>/g, "").trim())
-    : "";
+  const desc =
+    doc.acf?.short_description ||
+    doc.excerpt?.rendered?.replace(/<[^>]*>/g, "").trim() ||
+    "";
   const fileUrl = doc.acf?.file_url ?? "#";
   const fileSize = doc.acf?.file_size;
 

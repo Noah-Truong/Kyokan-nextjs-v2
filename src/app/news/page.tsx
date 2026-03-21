@@ -11,9 +11,74 @@ import {
   NEWS_CATEGORY_META,
   MOCK_NEWS_POSTS,
   formatWpDate,
+  stripHtml,
   type WpPost,
   type WpCategory,
 } from "@/lib/wordpress";
+
+function NewsModal({ post, onClose }: { post: WpPost; onClose: () => void }) {
+  const meta = post.categorySlug ? NEWS_CATEGORY_META[post.categorySlug] : NEWS_CATEGORY_META.info;
+  const excerpt = stripHtml(post.excerpt.rendered);
+
+  useEffect(() => {
+    document.body.style.overflow = "hidden";
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = "";
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [onClose]);
+
+  return (
+    <AnimatePresence>
+      <motion.div
+        key="backdrop"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-50 flex items-center justify-center p-4"
+        onClick={onClose}
+      >
+        <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+        <motion.div
+          key="modal"
+          initial={{ opacity: 0, scale: 0.95, y: 12 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: 12 }}
+          transition={{ duration: 0.2 }}
+          onClick={(e) => e.stopPropagation()}
+          className="relative z-10 bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6"
+        >
+          <button
+            onClick={onClose}
+            className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+
+          <div className="flex items-center gap-2 mb-3">
+            <time className="text-xs text-slate-400 tabular-nums">{formatWpDate(post.date)}</time>
+            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${meta.badgeClass}`}>
+              {meta.label}
+            </span>
+          </div>
+
+          <h2
+            className="text-lg font-semibold text-primary-900 leading-snug mb-4"
+            dangerouslySetInnerHTML={{ __html: post.title.rendered }}
+          />
+
+          {excerpt && (
+            <p className="text-sm text-slate-600 leading-relaxed">{excerpt}</p>
+          )}
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
+  );
+}
 
 const CATEGORIES: { id: WpCategory | "all"; label: string }[] = [
   { id: "all", label: "すべて" },
@@ -47,6 +112,7 @@ export default function NewsPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [selectedPost, setSelectedPost] = useState<WpPost | null>(null);
 
   const load = useCallback(async (cat: WpCategory | "all", pg: number) => {
     setLoading(true);
@@ -83,6 +149,10 @@ export default function NewsPage() {
 
   return (
     <div>
+      {selectedPost && (
+        <NewsModal post={selectedPost} onClose={() => setSelectedPost(null)} />
+      )}
+
       {/* Hero */}
       <section className="relative pt-32 pb-16 md:pt-40 md:pb-20 bg-primary-950">
         <div className="absolute inset-0">
@@ -190,21 +260,13 @@ export default function NewsPage() {
                   const meta = post.categorySlug
                     ? NEWS_CATEGORY_META[post.categorySlug]
                     : NEWS_CATEGORY_META.info;
-                  const href =
-                    post.link === "#" || !post.link
-                      ? "#"
-                      : post.link.startsWith("http")
-                      ? post.link
-                      : post.link;
 
                   return (
-                    <motion.a
+                    <motion.button
                       key={post.id}
                       variants={staggerItemVariants}
-                      href={href}
-                      target={post.link?.startsWith("http") ? "_blank" : undefined}
-                      rel={post.link?.startsWith("http") ? "noopener noreferrer" : undefined}
-                      className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-5 py-5 group hover:bg-slate-50 -mx-4 px-4 rounded-lg transition-colors"
+                      onClick={() => setSelectedPost(post)}
+                      className="w-full text-left flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-5 py-5 group hover:bg-slate-50 -mx-4 px-4 rounded-lg transition-colors"
                     >
                       <time className="text-xs text-slate-400 tabular-nums shrink-0 sm:w-24">
                         {formatWpDate(post.date)}
@@ -226,7 +288,7 @@ export default function NewsPage() {
                       >
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                       </svg>
-                    </motion.a>
+                    </motion.button>
                   );
                 })}
               </motion.div>
