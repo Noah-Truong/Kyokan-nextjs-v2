@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   fetchAnnotatedPosts,
@@ -16,6 +17,8 @@ import {
 function NewsModal({ post, onClose }: { post: WpPost; onClose: () => void }) {
   const meta = post.categorySlug ? NEWS_CATEGORY_META[post.categorySlug] : NEWS_CATEGORY_META.info;
   const excerpt = stripHtml(post.excerpt.rendered);
+  const isInternalLink = post.link.startsWith("/");
+  const router = useRouter();
 
   useEffect(() => {
     document.body.style.overflow = "hidden";
@@ -26,6 +29,11 @@ function NewsModal({ post, onClose }: { post: WpPost; onClose: () => void }) {
       document.removeEventListener("keydown", onKey);
     };
   }, [onClose]);
+
+  function handleInternalLink() {
+    onClose();
+    router.push(post.link);
+  }
 
   return (
     <AnimatePresence>
@@ -69,7 +77,19 @@ function NewsModal({ post, onClose }: { post: WpPost; onClose: () => void }) {
           />
 
           {excerpt && (
-            <p className="text-sm text-slate-600 leading-relaxed">{excerpt}</p>
+            <p className="text-sm text-slate-600 leading-relaxed mb-4">{excerpt}</p>
+          )}
+
+          {isInternalLink && (
+            <button
+              onClick={handleInternalLink}
+              className="inline-flex items-center gap-2 px-4 py-2.5 bg-accent-600 hover:bg-accent-700 text-white text-sm font-medium rounded-lg transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+              ダウンロードページへ
+            </button>
           )}
         </motion.div>
       </motion.div>

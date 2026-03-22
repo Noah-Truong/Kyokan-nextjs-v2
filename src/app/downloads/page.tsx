@@ -230,6 +230,7 @@ export default function DownloadsPage() {
                 return (
                   <motion.div
                     key={cat}
+                    id={cat}
                     variants={fadeUpVariants}
                     initial="hidden"
                     whileInView="visible"

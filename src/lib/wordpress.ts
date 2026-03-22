@@ -135,56 +135,56 @@ async function buildCategoryMap(): Promise<Map<number, string>> {
   return new Map(cats.map((c) => [c.id, c.slug]));
 }
 
+// ─── Document → news post conversion ─────────────────────────────────────────
+// Converts a document CPT entry into a WpPost so it appears in news feeds.
+// IDs are offset by 900000 to avoid collisions with regular post IDs.
+
+function documentToNewsPost(doc: WpDocument): WpPost {
+  const desc =
+    doc.acf?.short_description ||
+    doc.excerpt?.rendered?.replace(/<[^>]*>/g, "").trim() ||
+    "";
+  // Link to the downloads page scrolled to the document's category section
+  const anchor = doc.acf?.document_category ? `#${doc.acf.document_category}` : "";
+  return {
+    id: doc.id + 900000,
+    date: doc.date,
+    title: doc.title,
+    excerpt: { rendered: desc },
+    link: `/downloads${anchor}`,
+    slug: doc.slug,
+    categories: [],
+    categorySlug: "download",
+  };
+}
+
+async function fetchDocumentsAsNewsPosts(): Promise<WpPost[]> {
+  const url = `${WP_API_URL}/wp-json/wp/v2/document?per_page=100&_fields=id,date,title,excerpt,acf,slug,link`;
+  const res = await fetch(url, { next: { revalidate: 300 } });
+  if (!res.ok) return [];
+  const docs: WpDocument[] = await res.json();
+  return docs.map(documentToNewsPost);
+}
+
+function sortByDateDesc(posts: WpPost[]): WpPost[] {
+  return [...posts].sort(
+    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+  );
+}
+
 // ─── News post fetching ───────────────────────────────────────────────────────
 
 export async function fetchAnnotatedPosts(perPage = 5): Promise<WpPost[]> {
-  const url = `${WP_API_URL}/wp-json/wp/v2/posts?per_page=${perPage}&_fields=id,date,title,excerpt,link,slug,categories`;
-  const res = await fetch(url, { next: { revalidate: 300 } });
-  if (!res.ok) throw new Error(`WP posts fetch failed: ${res.status}`);
-  const posts: WpPost[] = await res.json();
-  const catMap = await buildCategoryMap();
-  const validSlugs = new Set<string>(["info", "download", "award"]);
+  const [postsRes, docPosts] = await Promise.all([
+    fetch(
+      `${WP_API_URL}/wp-json/wp/v2/posts?per_page=100&_fields=id,date,title,excerpt,link,slug,categories`,
+      { next: { revalidate: 300 } }
+    ),
+    fetchDocumentsAsNewsPosts(),
+  ]);
 
-  return posts.map((p) => {
-    const matched = p.categories
-      .map((id) => catMap.get(id))
-      .find((s) => s && validSlugs.has(s));
-    return { ...p, categorySlug: matched as WpCategory | undefined };
-  });
-}
-
-export async function fetchPaginatedPosts(
-  page = 1,
-  perPage = 10,
-  categorySlug?: string
-): Promise<PaginatedPosts> {
-  let catId = "";
-  if (categorySlug && categorySlug !== "all") {
-    const catRes = await fetch(
-      `${WP_API_URL}/wp-json/wp/v2/categories?slug=${categorySlug}&_fields=id`,
-      { next: { revalidate: 3600 } }
-    );
-    if (catRes.ok) {
-      const cats = await catRes.json();
-      if (cats.length > 0) catId = cats[0].id;
-    }
-  }
-
-  const params = new URLSearchParams({
-    per_page: String(perPage),
-    page: String(page),
-    _fields: "id,date,title,excerpt,link,slug,categories",
-  });
-  if (catId) params.set("categories", catId);
-
-  const res = await fetch(`${WP_API_URL}/wp-json/wp/v2/posts?${params}`, {
-    next: { revalidate: 300 },
-  });
-  if (!res.ok) throw new Error(`WP posts fetch failed: ${res.status}`);
-
-  const posts: WpPost[] = await res.json();
-  const totalPages = Number(res.headers.get("X-WP-TotalPages") ?? 1);
-  const total = Number(res.headers.get("X-WP-Total") ?? posts.length);
+  if (!postsRes.ok) throw new Error(`WP posts fetch failed: ${postsRes.status}`);
+  const posts: WpPost[] = await postsRes.json();
   const catMap = await buildCategoryMap();
   const validSlugs = new Set<string>(["info", "download", "award"]);
 
@@ -195,7 +195,84 @@ export async function fetchPaginatedPosts(
     return { ...p, categorySlug: matched as WpCategory | undefined };
   });
 
-  return { posts: annotated, totalPages, total };
+  return sortByDateDesc([...annotated, ...docPosts]).slice(0, perPage);
+}
+
+export async function fetchPaginatedPosts(
+  page = 1,
+  perPage = 10,
+  categorySlug?: string
+): Promise<PaginatedPosts> {
+  const includeDocuments = !categorySlug || categorySlug === "all" || categorySlug === "download";
+
+  // Resolve category ID for post filtering
+  let catId = "";
+  if (categorySlug && categorySlug !== "all" && categorySlug !== "download") {
+    const catRes = await fetch(
+      `${WP_API_URL}/wp-json/wp/v2/categories?slug=${categorySlug}&_fields=id`,
+      { next: { revalidate: 3600 } }
+    );
+    if (catRes.ok) {
+      const cats = await catRes.json();
+      if (cats.length > 0) catId = cats[0].id;
+    }
+  }
+
+  // When merging with documents, fetch all posts so we can sort and paginate manually
+  const fetchPerPage = includeDocuments ? 100 : perPage;
+  const fetchPage = includeDocuments ? 1 : page;
+
+  const params = new URLSearchParams({
+    per_page: String(fetchPerPage),
+    page: String(fetchPage),
+    _fields: "id,date,title,excerpt,link,slug,categories",
+  });
+  if (catId) params.set("categories", catId);
+  // When "download" category selected, also filter posts to that category
+  if (categorySlug === "download" && !catId) {
+    const dlCatRes = await fetch(
+      `${WP_API_URL}/wp-json/wp/v2/categories?slug=download&_fields=id`,
+      { next: { revalidate: 3600 } }
+    );
+    if (dlCatRes.ok) {
+      const dlCats = await dlCatRes.json();
+      if (dlCats.length > 0) params.set("categories", dlCats[0].id);
+    }
+  }
+
+  const [postsRes, docPosts] = await Promise.all([
+    fetch(`${WP_API_URL}/wp-json/wp/v2/posts?${params}`, {
+      next: { revalidate: 300 },
+    }),
+    includeDocuments ? fetchDocumentsAsNewsPosts() : Promise.resolve([]),
+  ]);
+
+  if (!postsRes.ok) throw new Error(`WP posts fetch failed: ${postsRes.status}`);
+
+  const posts: WpPost[] = await postsRes.json();
+  const catMap = await buildCategoryMap();
+  const validSlugs = new Set<string>(["info", "download", "award"]);
+
+  const annotated = posts.map((p) => {
+    const matched = p.categories
+      .map((id) => catMap.get(id))
+      .find((s) => s && validSlugs.has(s));
+    return { ...p, categorySlug: matched as WpCategory | undefined };
+  });
+
+  if (!includeDocuments) {
+    const totalPages = Number(postsRes.headers.get("X-WP-TotalPages") ?? 1);
+    const total = Number(postsRes.headers.get("X-WP-Total") ?? posts.length);
+    return { posts: annotated, totalPages, total };
+  }
+
+  // Merge posts + documents, sort by date, paginate manually
+  const merged = sortByDateDesc([...annotated, ...docPosts]);
+  const total = merged.length;
+  const totalPages = Math.ceil(total / perPage);
+  const paginated = merged.slice((page - 1) * perPage, page * perPage);
+
+  return { posts: paginated, totalPages, total };
 }
 
 // ─── Document fetching ────────────────────────────────────────────────────────
