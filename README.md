@@ -1,137 +1,174 @@
-# 京環メンテナンス コーポレートサイト
+# ラクユーZ工法協会 — 公式ウェブサイト
 
-Next.js 14 + Tailwind CSS + Framer Motion で構築したコーポレートサイト。
+Next.js 14 + Tailwind CSS + Framer Motion で構築した公式コーポレートサイト。  
+CMS バックエンドとして WordPress.com (Business) を REST API 経由で接続しています。
+
+---
+
+## 技術スタック
+
+| レイヤー | 技術 |
+|---|---|
+| Framework | Next.js 14 (App Router) |
+| Language | TypeScript |
+| Styling | Tailwind CSS |
+| Animation | Framer Motion |
+| 3D Viewer | Google `<model-viewer>` (GLB/GLTF) |
+| CMS | WordPress.com Business — REST API |
+| Hosting (Front) | Vercel (推奨) |
+| Hosting (CMS) | WordPress.com (managed) |
+
+---
 
 ## セットアップ
 
 ```bash
 npm install
-npm run dev
+npm run dev        # http://localhost:3000
+npm run build
+npm run start
 ```
+
+### 環境変数
+
+`.env.local` を作成し、WordPress サイトの URL を設定してください。
+
+```env
+# WordPress サイトの URL（末尾スラッシュなし、https:// 必須）
+NEXT_PUBLIC_WP_API_URL=https://your-site.wpcomstaging.com
+```
+
+> この変数が設定されていない場合、またはプレースホルダーのままの場合、  
+> ニュースパネルと資料ダウンロードはモックデータで表示されます。
+
+---
+
+## ページ一覧
+
+| パス | ページ | CMS 連携 |
+|---|---|---|
+| `/` | ホーム（ニュースティッカー付き） | ✅ WordPress posts |
+| `/construction` | 工法について | — |
+| `/specification` | 6つの特徴 | — |
+| `/process` | 施工手順 | — |
+| `/works` | 施工事例（フィルター・ライトボックス） | — |
+| `/machine` | 主な使用機器（3D モデルビューア） | — |
+| `/downloads` | 資料ダウンロード | ✅ WordPress CPT `document` + ACF |
+| `/news` | お知らせ・新着情報 | ✅ WordPress posts |
+| `/about` | 協会について | — |
+| `/contact` | お問い合わせフォーム | — |
+
+---
 
 ## ディレクトリ構成
 
 ```
 src/
 ├── app/
-│   ├── layout.tsx          # ルートレイアウト
-│   ├── page.tsx            # ホームページ
-│   ├── company/            # 会社概要
-│   │   ├── page.tsx
-│   │   └── message/page.tsx  # 代表あいさつ
-│   ├── rakuyuz/page.tsx    # ラクユーZ工法（3Dモデル表示）
-│   ├── strength/page.tsx   # 事業内容・強み
-│   ├── works/page.tsx      # 施工実績
-│   ├── recruit/page.tsx    # 採用情報
-│   └── contact/page.tsx    # お問い合わせ
+│   ├── layout.tsx              # ルートレイアウト・メタデータ・構造化データ
+│   ├── page.tsx                # ホームページ
+│   ├── construction/page.tsx   # 工法について
+│   ├── specification/page.tsx  # 6つの特徴
+│   ├── process/page.tsx        # 施工手順
+│   ├── works/page.tsx          # 施工事例
+│   ├── machine/page.tsx        # 主な使用機器
+│   ├── downloads/page.tsx      # 資料ダウンロード（WordPress CPT）
+│   ├── news/page.tsx           # ニュース（WordPress posts）
+│   ├── about/page.tsx          # 協会について
+│   └── contact/page.tsx        # お問い合わせ
 ├── components/
 │   ├── ui/
-│   │   ├── Button.tsx      # Button, SectionHeader, Badge
-│   │   └── ModelViewer.tsx # Three.js 3Dモデルビューア
+│   │   ├── Button.tsx          # Button, SectionHeader, Badge
+│   │   ├── ModelViewer.tsx     # <model-viewer> ラッパー（GLB/GLTF）
+│   │   ├── NewsTicker.tsx      # ホームのニュース一覧（モーダル付き）
+│   │   └── WpNewsPanel.tsx     # WordPress ニュースパネル（未使用・予備）
 │   ├── layout/
-│   │   ├── Header.tsx
+│   │   ├── Header.tsx          # 固定ヘッダー・モバイルメニュー
 │   │   └── Footer.tsx
-│   └── sections/
+│   └── sections/               # ホームページのセクションコンポーネント
 │       ├── HeroSection.tsx
 │       ├── ServicesSection.tsx
 │       ├── RakuyuzSection.tsx
 │       ├── AboutSection.tsx
 │       └── CTASection.tsx
 ├── lib/
-│   ├── animations.ts       # Framer Motion variants
-│   └── utils.ts            # ユーティリティ、会社データ
+│   ├── animations.ts           # Framer Motion variants
+│   ├── wordpress.ts            # WordPress REST API ヘルパー・型定義・モックデータ
+│   └── utils.ts                # ユーティリティ関数・全静的コンテンツデータ
 ├── hooks/
-│   └── useAnimations.ts    # カスタムフック
+│   └── useAnimations.ts        # useHeaderScroll, useCountUp カスタムフック
 └── styles/
-    └── globals.css         # Tailwind + グローバルCSS
+    └── globals.css             # Tailwind ディレクティブ・カスタムクラス
 ```
 
-## 3Dモデルの追加方法
+---
 
-### 1. モデルファイルの配置
+## WordPress 連携
 
-GLB形式の3Dモデルを `public/models/` ディレクトリに配置してください：
+### ニュース（標準 posts）
+
+WordPress の通常投稿を使用。カテゴリースラッグは以下の3つを使用します。
+
+| スラッグ | 表示ラベル |
+|---|---|
+| `info` | お知らせ |
+| `download` | 資料追加 |
+| `award` | 受賞報告 |
+
+### 資料ダウンロード（カスタム投稿タイプ + ACF）
+
+カスタム投稿タイプ `document` に ACF フィールドグループを紐付けます。  
+フィールドグループの「Show in REST API」を **Yes** に設定してください。
+
+| ACF フィールド名 | フィールドタイプ | 内容 |
+|---|---|---|
+| `document_category` | Select | `catalog` / `technical-spec` / `construction-manual` / `design-reference` |
+| `file_url` | File（Return: File URL） | ダウンロードファイル URL |
+| `file_size` | Text | 例: `8.4 MB` |
+| `short_description` | Textarea | カードに表示する説明文 |
+
+### API エンドポイント
+
+```
+GET /wp-json/wp/v2/posts          # ニュース投稿
+GET /wp-json/wp/v2/categories     # カテゴリー一覧
+GET /wp-json/wp/v2/document       # 資料ダウンロード CPT
+```
+
+---
+
+## 3D モデルビューア
+
+`public/models/` に GLB ファイルを配置し、`machine/page.tsx` の `pumpSpecs` 配列で  
+`modelPath` を指定します。Google `<model-viewer>` を使用（CDN 経由で読み込み）。
 
 ```
 public/
 └── models/
-    ├── auto-pump.glb       # 自動制御ポンプ
-    ├── plug-system.glb     # 通水プラグシステム
-    └── low-noise-unit.glb  # 低騒音排水ユニット
+    ├── pump-orange.glb         # 2インチポンプ
+    ├── pump-unit.glb           # 4インチポンプ
+    ├── industrial-pump.glb     # 6インチポンプ
+    └── gas-cylinder-3d-model.glb  # 通水ポンプ
 ```
 
-### 2. モデルの設定（rakuyuz/page.tsx）
+**推奨スペック**: ファイルサイズ 5MB 以下、テクスチャ 2048×2048 以下
 
-`pumpSystems` 配列でモデルの情報を定義しています：
+---
 
-```typescript
-const pumpSystems = [
-  {
-    id: "auto-pump",
-    name: "自動制御ポンプ",
-    description: "センサーにより水位を検知し、自動で排水を制御。24時間無人運転が可能です。",
-    modelPath: "/models/auto-pump.glb",  // ← このパスを変更
-  },
-  // ...
-];
-```
+## 静的コンテンツの更新
 
-### 3. Three.js ModelViewer コンポーネント
+ニュース・資料以外のすべてのコンテンツ（施工事例・機器仕様・施工手順など）は  
+`src/lib/utils.ts` に定数として定義されています。  
+WordPress 接続は不要で、直接編集してください。
 
-`src/components/ui/ModelViewer.tsx` で3Dモデルを表示します。
-
-**対応フォーマット**: GLB/GLTF
-
-**機能**:
-- マウスドラッグで回転
-- スクロールでズーム
-- 自動センタリング・スケーリング
-- ローディング状態表示
-- エラーハンドリング
-
-### 4. モデル最適化のヒント
-
-- ファイルサイズは5MB以下推奨
-- ポリゴン数は10万以下推奨
-- テクスチャは2048x2048以下
-- [gltf-pipeline](https://github.com/CesiumGS/gltf-pipeline) でdraco圧縮可能
-
-## ページ一覧
-
-| パス | ページ |
-|------|--------|
-| `/` | ホーム |
-| `/company` | 会社概要 |
-| `/company/message` | 代表あいさつ |
-| `/rakuyuz` | ラクユーZ工法（3Dモデル表示） |
-| `/strength` | 事業内容・強み |
-| `/works` | 施工実績 |
-| `/recruit` | 採用情報 |
-| `/contact` | お問い合わせ |
-
-## 技術スタック
-
-- **Framework**: Next.js 14 (App Router)
-- **Styling**: Tailwind CSS
-- **Animation**: Framer Motion
-- **3D**: Three.js
-- **Language**: TypeScript
-
-## デザインシステム
-
-### カラーパレット
-
-- **Primary**: Navy (#1a2640 ~ #f5f7fa)
-- **Accent**: Blue (#006dc4 ~ #f0f7ff)
-- **Gold**: (#9a8432 ~ #e8d48a) - 受賞バッジ用
-
-### タイポグラフィ
-
-- **Font**: Noto Sans JP
-- **Weights**: 300, 400, 500, 600, 700
-
-### アニメーション
-
-- シンプルなフェードイン/アップ
-- Duration: 0.4-0.5s
-- Easing: ease-out
+| 定数名 | 用途 |
+|---|---|
+| `companyInfo` | 会社名・住所・電話・メール |
+| `navigationItems` | ヘッダーナビゲーション |
+| `sixFeatures` | 6つの特徴ページのコンテンツ |
+| `processSteps` | 施工手順のステップ |
+| `caseStudies` | 施工事例（19件） |
+| `pumpSpecs` | 特殊ポンプ仕様 |
+| `waterFlowPlugSpecs` | 通水プラグ仕様 |
+| `stopperSpecs` | ストッパー仕様 |
+| `businessActivities` | 協会の事業内容 |

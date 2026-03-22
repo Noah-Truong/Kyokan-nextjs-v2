@@ -1,0 +1,319 @@
+================================================================================
+  DESIGN OVERVIEW — ラクユーZ工法協会 Next.js Site
+================================================================================
+
+This document describes the visual design system, component patterns, layout
+conventions, and architectural decisions used throughout the site.
+
+────────────────────────────────────────────────────────────────────────────────
+1. BRAND & VISUAL LANGUAGE
+────────────────────────────────────────────────────────────────────────────────
+
+  The site communicates authority, technical precision, and reliability —
+  qualities expected of a civil engineering association with 30+ years of
+  industry experience and a national award (インフラメンテナンス大賞 優秀賞).
+
+  Visual direction:
+    • Corporate navy as the dominant dark tone — conveys professionalism
+    • Professional blue accent — active, technological, trustworthy
+    • Muted gold — reserved exclusively for the award badge in the hero
+    • Clean white backgrounds with light slate borders for content sections
+    • Photography-forward: full-bleed images with dark overlay on hero/page headers
+
+────────────────────────────────────────────────────────────────────────────────
+2. COLOR PALETTE  (tailwind.config.ts → theme.extend.colors)
+────────────────────────────────────────────────────────────────────────────────
+
+  PRIMARY (Corporate Navy)
+  ─────────────────────────
+  primary-50   #f5f7fa    Background tints, very subtle fills
+  primary-100  #ebeef3    Light card backgrounds
+  primary-200  #d2d9e5    Borders on light backgrounds
+  primary-300  #aab8ce    Disabled/muted text
+  primary-400  #7c92b2    Secondary icons
+  primary-500  #5b7499    Mid-tone fills
+  primary-600  #475d80    Hover states for dark elements
+  primary-700  #3a4c68    Dark button hovers
+  primary-800  #334157    Dark text on light bg
+  primary-900  #1a2640    Primary body text, headings  ← main text color
+  primary-950  #0f1729    Deep navy — hero backgrounds, header, footer
+
+  ACCENT (Professional Blue)
+  ───────────────────────────
+  accent-50    #f0f7ff    Very light tint backgrounds
+  accent-100   #e0effe    Light badge backgrounds
+  accent-200   #b9dffd    Light borders
+  accent-300   #7cc5fb    Light text on dark backgrounds
+  accent-400   #36a7f5    Active indicators (e.g. pulse dot in news panel)
+  accent-500   #0c8be6    Focus rings, links hover
+  accent-600   #006dc4    Primary buttons, badges, active states  ← main accent
+  accent-700   #01579f    Button hover
+  accent-800   #064a83    Deep accent
+  accent-900   #0a3e6c    Very deep accent
+  accent-950   #072848    Near-black accent
+
+  GOLD (Award only)
+  ──────────────────
+  gold-300     #e8d48a    Light gold
+  gold-400     #d4bc5e    Award star icon  ← used in hero badge
+  gold-500     #b8a03c    Mid gold
+  gold-600     #9a8432    Deep gold
+
+  USAGE RULES
+  ────────────
+  • Never mix gold outside the award badge context
+  • accent-600 is the single interactive color — used for all CTAs,
+    active filters, badges, and focus states
+  • primary-900 is the default text color for all body content
+  • primary-950 is exclusively for dark full-bleed sections
+    (hero, page heroes, header, footer, mobile menu)
+
+────────────────────────────────────────────────────────────────────────────────
+3. TYPOGRAPHY  (tailwind.config.ts → theme.extend.fontSize + fontFamily)
+────────────────────────────────────────────────────────────────────────────────
+
+  Font Family: Noto Sans JP
+    Loaded from Google Fonts, weights: 300 / 400 / 500 / 600 / 700
+    Fallbacks: ui-sans-serif → system-ui → -apple-system → sans-serif
+
+  DISPLAY SCALE (for page titles and hero headlines)
+  ────────────────────────────────────────────────────
+  display-xl   3.5rem  / leading 1.15 / tracking -0.01em  → Hero main headline
+  display-lg   2.75rem / leading 1.20 / tracking -0.01em  → Page hero h1
+  display-md   2.25rem / leading 1.25 / tracking 0        → Section headings
+  display-sm   1.875rem/ leading 1.30 / tracking 0        → Sub-headings
+
+  BODY SCALE (Tailwind defaults)
+  ────────────────────────────────
+  text-xl      1.25rem   Large lead paragraphs
+  text-lg      1.125rem  Hero description, prominent body
+  text-base    1rem      Standard body text  ← default
+  text-sm      0.875rem  Secondary text, table cells, captions
+  text-xs      0.75rem   Labels, timestamps, badges
+  text-[11px]            Very small timestamps in dark panels
+  text-[10px]            Category badge text in dark panels
+
+  TEXT SHADOW UTILITIES  (globals.css)
+  ──────────────────────────────────────
+  text-shadow-sm    0 1px 2px rgba(0,0,0,0.5)   Subtle on photos
+  text-shadow       0 2px 4px rgba(0,0,0,0.5)   Standard on dark hero
+  text-shadow-lg    0 4px 8px rgba(0,0,0,0.6)   Display text on hero
+  text-shadow-xl    0 4px 16px rgba(0,0,0,0.7)  Maximum contrast
+
+  HIERARCHY PATTERN
+  ──────────────────
+  Every content section follows:
+    section-label  (xs, tracked, accent-600, uppercase, "Section Name" in EN)
+    h1/h2          (display-md or display-lg, primary-900)
+    description    (base/lg, slate-600, max-w-2xl or max-w-3xl, centered or left)
+
+────────────────────────────────────────────────────────────────────────────────
+4. SPACING & LAYOUT SYSTEM  (globals.css + tailwind.config.ts)
+────────────────────────────────────────────────────────────────────────────────
+
+  CUSTOM SPACING VALUES
+  ──────────────────────
+  18  →  4.5rem  (72px)  — Header height on md+ screens
+  22  →  5.5rem           — Occasional large gap
+  30  →  7.5rem           — Occasional extra-large gap
+
+  CONTAINER CLASSES  (globals.css)
+  ──────────────────────────────────
+  .container-custom    max-w-5xl  px-6 sm:px-8 md:px-12 lg:px-16  ← standard
+  .container-narrow    max-w-3xl  px-6 sm:px-8 md:px-12 lg:px-16
+  .container-hero      max-w-6xl  px-6 sm:px-8 md:px-12 lg:px-16
+
+  SECTION SPACING CLASSES  (globals.css)
+  ────────────────────────────────────────
+  .section       py-16 md:py-20 lg:py-24   Standard section vertical padding
+  .section-sm    py-10 md:py-12 lg:py-16   CTA strips, compact sections
+
+  HEADER OFFSET RULE
+  ───────────────────
+  Fixed header height: h-16 (64px) on mobile, h-18 (72px) on md+
+  All page heroes use:   pt-32 pb-16 md:pt-40 md:pb-20
+  Home page ticker uses: pt-16 md:pt-18
+
+────────────────────────────────────────────────────────────────────────────────
+5. COMPONENT PATTERNS
+────────────────────────────────────────────────────────────────────────────────
+
+  CARD  (.card class + globals.css)
+  ───────────────────────────────────
+  bg-white rounded-xl border border-slate-200 p-6 md:p-8
+  Hover variant (.card-hover): adds hover:border-slate-300 hover:shadow-card
+  Compact variant (.card-compact): p-5 md:p-6, rounded-lg
+
+  BUTTONS  (src/components/ui/Button.tsx)
+  ─────────────────────────────────────────
+  Variants:  primary / secondary / outline / white / ghost
+  Sizes:     sm / md (default) / lg
+  All buttons: min-h-[44px] touch target compliance on mobile
+  Uses asChild (Radix slot pattern) for wrapping Link components
+
+  SECTION HEADER  (SectionHeader component in Button.tsx)
+  ─────────────────────────────────────────────────────────
+  Props: label (English tag) | title (Japanese heading) | description | align
+  Pattern:
+    <span class="section-label">Label</span>
+    <h2 class="text-display-md">Title</h2>
+    <p class="description">Description text</p>
+
+  FEATURE CARD  (.feature-card in globals.css)
+  ──────────────────────────────────────────────
+  Absolute-positioned number badge (.feature-card-number) at -top-3 -left-3
+  Used in specification page for the 6 features
+
+  INFO TABLE  (.info-table rows in globals.css)
+  ──────────────────────────────────────────────
+  .info-table-row:    flex-col on mobile → flex-row sm:
+  .info-table-label:  sm:w-36 fixed-width left column
+  .info-table-value:  fills remaining width
+
+  MODALS (news, NewsTicker, WpNewsPanel)
+  ────────────────────────────────────────
+  Pattern:
+    fixed inset-0 z-50 flex items-center justify-center p-4
+    backdrop: absolute inset-0 bg-black/50 backdrop-blur-sm
+    content:  relative z-10 bg-white rounded-2xl shadow-2xl
+              max-w-md/lg w-full max-h-[90vh] overflow-y-auto p-6
+  Behaviors:
+    • Backdrop click → close
+    • Escape key → close
+    • document.body.style.overflow = "hidden" while open
+
+────────────────────────────────────────────────────────────────────────────────
+6. PAGE STRUCTURE TEMPLATE
+────────────────────────────────────────────────────────────────────────────────
+
+  Every inner page follows this pattern:
+
+  ┌──────────────────────────────────────────────┐
+  │  PAGE HERO                                    │
+  │  relative, full-bleed photo + dark overlay    │
+  │  pt-32 pb-16 md:pt-40 md:pb-20               │
+  │  section-label + h1 + description (centered)  │
+  └──────────────────────────────────────────────┘
+  ┌──────────────────────────────────────────────┐
+  │  STICKY FILTER BAR (if page has filters)      │
+  │  py-5/6, bg-slate-50, border-b, top-16, z-20 │
+  └──────────────────────────────────────────────┘
+  ┌──────────────────────────────────────────────┐
+  │  CONTENT SECTIONS                             │
+  │  .section / .section-sm                       │
+  │  .container-custom                            │
+  └──────────────────────────────────────────────┘
+  ┌──────────────────────────────────────────────┐
+  │  CTA STRIP                                    │
+  │  .section-sm bg-accent-600                    │
+  │  flex col→row, items-center, gap-6            │
+  │  heading + description + Button (white)       │
+  └──────────────────────────────────────────────┘
+
+  HOME PAGE is the exception:
+    NewsTicker (pt-16 md:pt-18) → HeroSection → content sections → CTASection
+
+────────────────────────────────────────────────────────────────────────────────
+7. ANIMATION SYSTEM  (src/lib/animations.ts + Framer Motion)
+────────────────────────────────────────────────────────────────────────────────
+
+  NAMED VARIANTS
+  ───────────────
+  fadeUpVariants        opacity 0→1, y 20→0, duration 0.6
+  staggerContainerVariants   staggerChildren: 0.1, delayChildren: 0.2
+  staggerItemVariants   opacity 0→1, y 16→0, duration 0.5
+  pageVariants          page-level fade + slight y on enter/exit
+
+  USAGE PATTERN
+  ──────────────
+  • Hero content: direct animate (not scroll-triggered), delays 0.1–0.4s
+  • Section content: whileInView + viewport={{ once: true }}
+  • Cards in grids: staggerContainerVariants wrapping staggerItemVariants
+  • Modals: scale 0.95→1 + y 12→0, duration 0.2 (fast, feels snappy)
+  • Backdrop: opacity only, duration 0.2
+
+  CUSTOM HOOKS  (src/hooks/useAnimations.ts)
+  ────────────────────────────────────────────
+  useHeaderScroll(threshold)   Returns boolean — true when scrollY > threshold
+  useCountUp(target, duration, start, trigger)   Animated number counter for stats
+
+  REDUCED MOTION
+  ───────────────
+  globals.css includes @media (prefers-reduced-motion: reduce) that collapses
+  all animation/transition durations to 0.01ms system-wide.
+
+────────────────────────────────────────────────────────────────────────────────
+8. RESPONSIVE BREAKPOINTS
+────────────────────────────────────────────────────────────────────────────────
+
+  Tailwind defaults (used throughout):
+    sm:   640px   Stacked → side-by-side for small elements
+    md:   768px   Single column → 2-column grids, larger hero padding
+    lg:   1024px  2-column → 3-column grids, desktop navigation appears
+    xl:   1280px  Max layout width effectively reached
+
+  KEY RESPONSIVE BEHAVIORS
+  ─────────────────────────
+  Navigation:   lg:flex hidden / lg:hidden flex (hamburger)
+  Mobile menu:  Full-screen overlay (fixed inset-0), bg-primary-950
+  Hero text:    text-center on mobile → lg:text-left
+  CTA buttons:  flex-col → md:flex-row
+  Info tables:  flex-col rows → sm:flex-row
+  Filter bars:  flex-col → sm:flex-row, flex-wrap
+  Touch targets: All interactive elements min-h-[44px] (iOS HIG compliance)
+
+────────────────────────────────────────────────────────────────────────────────
+9. IMAGERY CONVENTIONS
+────────────────────────────────────────────────────────────────────────────────
+
+  All images use Next.js <Image> component with:
+    fill + object-cover   — Full-bleed hero/page-header photos
+    fill + object-contain — Construction photos, equipment images (preserve aspect)
+    sizes prop            — Always provided for LCP optimization
+    priority              — Set on above-the-fold images (hero, page hero)
+    unoptimized           — Set on complex photography to bypass Next.js compression
+    quality={100}         — Hero backgrounds for best fidelity
+
+  PHOTO DIRECTORY STRUCTURE
+  ──────────────────────────
+  public/photos/
+  ├── logo_01.png                        Main logo (transparent PNG)
+  ├── pomp.png                           Hero background
+  ├── water.png                          Page hero background (shared)
+  ├── features/                          6つの特徴 before/after images
+  ├── procedure/                         施工手順 step images
+  ├── rakuyu-zi method/                  Construction method diagrams
+  ├── construction examples/[folder]/    Case study photos (19 projects)
+  └── general_construction/              General site photography
+
+────────────────────────────────────────────────────────────────────────────────
+10. WORDPRESS CMS INTEGRATION ARCHITECTURE
+────────────────────────────────────────────────────────────────────────────────
+
+  FLOW
+  ──────
+  WordPress.com CMS  →  REST API  →  src/lib/wordpress.ts  →  Page components
+
+  FALLBACK BEHAVIOR
+  ──────────────────
+  Every component that fetches WordPress data has a fallback:
+    1. isWpConfigured() returns false   → renders MOCK_NEWS_POSTS / MOCK_DOCUMENTS
+    2. fetch() throws or returns !ok    → catches and renders mock data silently
+  This ensures the site always renders something, never breaks.
+
+  The "preview" label (tiny italic) appears in the WpNewsPanel when mock data
+  is being shown instead of live data.
+
+  DATA CACHE STRATEGY  (Next.js fetch revalidation)
+  ────────────────────────────────────────────────────
+  Posts list:       revalidate: 300   (5 minutes)
+  Category list:    revalidate: 3600  (1 hour)
+  Documents:        revalidate: 600   (10 minutes)
+
+  CLIENT-SIDE FETCHING
+  ─────────────────────
+  All WordPress data is fetched client-side via useEffect (all pages are
+  "use client"). Data is not server-rendered. This was chosen to keep the
+  architecture simple and avoid ISR/SSR cache complexity with WordPress.com.
+
+================================================================================

@@ -104,9 +104,8 @@ export default function RootLayout({
         />
 
         {/* Favicon */}
-        <link rel="icon" href="/favicon.ico" sizes="any" />
-        <link rel="icon" href="/icon.svg" type="image/svg+xml" />
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        <link rel="icon" href="/favicon.png" type="image/png" />
+        <link rel="apple-touch-icon" href="/favicon.png" />
         <link rel="manifest" href="/manifest.json" />
 
         {/* Structured Data */}
