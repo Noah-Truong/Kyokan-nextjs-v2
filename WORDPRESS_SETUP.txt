@@ -202,11 +202,11 @@ HOSTING ARCHITECTURE — TWO SERVICES, BOTH MANAGED
   ┌────────────────────────┬──────────┬───────────────────────────────────┐
   │ Name                   │ Slug     │ Use Case                          │
   ├────────────────────────┼──────────┼───────────────────────────────────┤
-  │ お知らせ (Notice)      │ info     │ Business hours, holiday closures  │
+  │ お知らせ (Notice)       │ info     │ Business hours, holiday closures  │
   ├────────────────────────┼──────────┼───────────────────────────────────┤
-  │ 資料追加 (New Doc)     │ download │ New PDF added to downloads page   │
+  │ 資料追加 (New Doc)      │ download │ New PDF added to downloads page   │
   ├────────────────────────┼──────────┼───────────────────────────────────┤
-  │ 受賞報告 (Award)       │ award    │ Award announcements               │
+  │ 受賞報告 (Award)        │ award    │ Award announcements               │
   └────────────────────────┴──────────┴───────────────────────────────────┘
 
   DOCUMENT CUSTOM POST TYPE (CPT UI)

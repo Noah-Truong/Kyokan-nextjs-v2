@@ -36,7 +36,7 @@ export function Header() {
         <div className="container-custom">
           <div className="flex items-center justify-between h-16 md:h-18">
             {/* Logo */}
-            <Link href="/" className="flex items-center flex-shrink-0 -ml-8 sm:-ml-16 lg:-ml-32">
+            <Link href="/" className="flex items-center flex-shrink-0 -ml-6 sm:-ml-16 lg:-ml-32 ">
               <div className="relative w-32 h-16 sm:w-48 sm:h-24 lg:w-64 lg:h-32 flex-shrink-0">
                 <Image
                   src="/photos/logo_01.png"
